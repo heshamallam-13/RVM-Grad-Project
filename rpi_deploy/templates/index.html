@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="EcoVend RVM Detection — Raspberry Pi 5 real-time recycling detection system" />
+    <title>EcoVend RVM — Live Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <h1>♻️ EcoVend RVM</h1>
+        <span class="subtitle">Raspberry Pi 5 — Live Detection</span>
+    </header>
+
+    <!-- Main content -->
+    <main id="app-main">
+        <!-- Video feed -->
+        <section id="video-section">
+            <img id="video-feed" alt="Live camera feed" />
+            <div id="fps-badge">-- FPS</div>
+        </section>
+
+        <!-- Stats cards -->
+        <section id="stats-bar">
+            <div class="stat-card" id="card-points">
+                <span class="stat-value" id="val-points">0</span>
+                <span class="stat-label">Points</span>
+            </div>
+            <div class="stat-card" id="card-pet">
+                <span class="stat-value" id="val-pet">0</span>
+                <span class="stat-label">PET</span>
+            </div>
+            <div class="stat-card" id="card-can">
+                <span class="stat-value" id="val-can">0</span>
+                <span class="stat-label">CAN</span>
+            </div>
+            <div class="stat-card" id="card-detected">
+                <span class="stat-value" id="val-detected">—</span>
+                <span class="stat-label">Detected</span>
+            </div>
+        </section>
+
+        <!-- Buttons -->
+        <section id="btn-bar">
+            <button id="btn-next" class="btn btn-primary" onclick="nextItem()">
+                ➕ Count Item
+            </button>
+            <button id="btn-reset" class="btn btn-secondary" onclick="resetSession()">
+                🔄 Reset
+            </button>
+        </section>
+
+        <!-- Toast -->
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- FPS Chart -->
+        <section id="chart-section">
+            <h2>📊 FPS Over Time</h2>
+            <canvas id="fps-chart"></canvas>
+        </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

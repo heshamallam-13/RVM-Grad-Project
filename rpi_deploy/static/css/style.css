@@ -1,0 +1,264 @@
+/* ============================================
+   EcoVend RVM — Simplified Dark UI
+   Target: Raspberry Pi 5 web interface
+   ============================================ */
+
+/* ----- Reset & Base ----- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0c0f1a;
+    --surface: rgba(255, 255, 255, 0.04);
+    --surface-hover: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #e4e8f1;
+    --text-dim: #8891a5;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.35);
+    --green: #00b894;
+    --green-glow: rgba(0, 184, 148, 0.3);
+    --blue: #0984e3;
+    --blue-glow: rgba(9, 132, 227, 0.3);
+    --warn: #fdcb6e;
+    --danger: #d63031;
+    --radius: 14px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ----- Header ----- */
+#app-header {
+    text-align: center;
+    padding: 1.5rem 1rem 0.5rem;
+}
+
+#app-header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--green), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+}
+
+/* ----- Main ----- */
+#app-main {
+    width: 100%;
+    max-width: 720px;
+    padding: 0.8rem 1rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ----- Video Section ----- */
+#video-section {
+    position: relative;
+    background: #000;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+#fps-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.03em;
+}
+
+/* ----- Stats Bar ----- */
+#stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.7rem 0.4rem;
+    text-align: center;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.stat-card:hover {
+    background: var(--surface-hover);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+}
+
+#card-points .stat-value { color: var(--warn); }
+#card-pet .stat-value   { color: var(--green); }
+#card-can .stat-value   { color: var(--blue); }
+#card-detected .stat-value { font-size: 1rem; }
+
+/* detected type colors */
+.det-pet { color: var(--green) !important; }
+.det-can { color: var(--blue) !important; }
+.det-none { color: var(--text-dim) !important; }
+
+/* ----- Buttons ----- */
+#btn-bar {
+    display: flex;
+    gap: 0.7rem;
+}
+
+.btn {
+    flex: 1;
+    padding: 0.85rem 0;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.2s, background 0.2s;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--green), #00a884);
+    color: #fff;
+    box-shadow: 0 4px 20px var(--green-glow);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 6px 28px var(--green-glow);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--surface-hover);
+}
+
+/* ----- Toast ----- */
+.toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(30, 35, 55, 0.92);
+    backdrop-filter: blur(12px);
+    color: var(--text);
+    padding: 0.7rem 1.4rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 100;
+    border: 1px solid var(--border);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+
+.toast.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+}
+
+/* ----- Chart Section ----- */
+#chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+}
+
+#chart-section h2 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    color: var(--text-dim);
+}
+
+#fps-chart {
+    width: 100% !important;
+    height: 160px !important;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 480px) {
+    #stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+    }
+
+    #app-header h1 {
+        font-size: 1.3rem;
+    }
+}

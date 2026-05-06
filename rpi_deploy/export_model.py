@@ -1,5 +1,6 @@
 """
-Export the YOLOv8s model to NCNN format for Raspberry Pi ARM CPU.
+Export the YOLOv8s model to ONNX format.
+This script must be run on a PC where `ultralytics` can be installed.
 
 Usage:
     python export_model.py
@@ -10,9 +11,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from config import PT_MODEL_PATH, IMGSZ
+from config import PT_MODEL_PATH, IMGSZ, PROJECT_DIR, CLASS_NAMES_PATH
 from ultralytics import YOLO
-
 
 def export():
     if not os.path.isfile(PT_MODEL_PATH):
@@ -22,12 +22,16 @@ def export():
     print(f"[Export] Loading model: {PT_MODEL_PATH}")
     model = YOLO(PT_MODEL_PATH)
 
-    print(f"[Export] Exporting to NCNN (imgsz={IMGSZ}) ...")
-    model.export(format="ncnn", imgsz=IMGSZ)
+    print(f"[Export] Exporting to ONNX (imgsz={IMGSZ}) ...")
+    onnx_path = model.export(format="onnx", imgsz=IMGSZ)
 
-    print("[Export] Done! NCNN model saved alongside the .pt file.")
-    print("[Export] The detector will auto-detect and use the NCNN model.")
+    print(f"[Export] Saving class names to: {CLASS_NAMES_PATH}")
+    with open(CLASS_NAMES_PATH, "w") as f:
+        for idx, name in model.names.items():
+            f.write(f"{idx}:{name}\n")
 
+    print("[Export] Done! ONNX model and class_names.txt saved.")
+    print("[Export] Copy both the .onnx file and class_names.txt to the Pi.")
 
 if __name__ == "__main__":
     export()

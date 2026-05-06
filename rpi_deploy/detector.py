@@ -1,27 +1,43 @@
 """
 Optimized detection engine for Raspberry Pi 5.
-Supports NCNN-exported models for best ARM performance.
+Uses OpenCV DNN with an ONNX-exported YOLOv8 model for best ARM performance
+without needing the heavy PyTorch/Ultralytics dependencies.
 """
 
 import time
+import os
 import cv2
-from ultralytics import YOLO
+import numpy as np
 
 from config import (
-    get_model_path, CAM_INDEX, FRAME_W, FRAME_H, TARGET_FPS,
+    get_model_path, get_class_names_path, CAM_INDEX, FRAME_W, FRAME_H, TARGET_FPS,
     IMGSZ, CONF_THRESHOLD, IOU_THRESHOLD, MAX_DET, INFER_EVERY_N,
     PET_CLASSES, CAN_CLASSES, normalize_name,
 )
 
-
 class Detector:
-    """Manages camera capture and YOLO inference."""
+    """Manages camera capture and OpenCV DNN YOLO inference."""
 
     def __init__(self, model_path=None):
         path = model_path or get_model_path()
-        print(f"[Detector] Loading model: {path}")
-        self.model = YOLO(path, task="detect")
+        print(f"[Detector] Loading ONNX model: {path}")
+        self.net = cv2.dnn.readNetFromONNX(path)
         print("[Detector] Model loaded.")
+
+        # Try to load class names
+        self.class_names = {}
+        class_path = get_class_names_path()
+        if os.path.exists(class_path):
+            with open(class_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if ":" in line:
+                        idx_str, name = line.split(":", 1)
+                        self.class_names[int(idx_str)] = name
+            print(f"[Detector] Loaded {len(self.class_names)} class names.")
+        else:
+            print(f"[Detector] WARNING: Class names file not found at {class_path}.")
+            print("Run export_model.py on PC first, then copy class_names.txt to the Pi.")
 
         self.cap = None
         self.frame_count = 0
@@ -75,7 +91,7 @@ class Detector:
         Returns dict:
             {
                 "ok": bool,
-                "frame_jpeg": bytes | None,     # JPEG-encoded annotated frame
+                "frame_jpeg": bytes | None,
                 "detected_type": "pet" | "can" | "none",
                 "detected_conf": float,
                 "fps": float,
@@ -97,36 +113,82 @@ class Detector:
         do_infer = (self.frame_count % INFER_EVERY_N == 0)
 
         if do_infer:
-            results = self.model.predict(
-                source=frame,
-                imgsz=IMGSZ,
-                conf=CONF_THRESHOLD,
-                iou=IOU_THRESHOLD,
-                max_det=MAX_DET,
-                verbose=False,
-            )
-            r0 = results[0]
-            annotated = r0.plot()
-            self.last_annotated = annotated
+            # OpenCV DNN requires a blob format
+            blob = cv2.dnn.blobFromImage(frame, 1/255.0, (IMGSZ, IMGSZ), swapRB=True, crop=False)
+            self.net.setInput(blob)
+            outputs = self.net.forward()
 
-            # Find best supported detection
-            if r0.boxes is not None and len(r0.boxes) > 0:
-                names = r0.names
-                for b in r0.boxes:
-                    cls_id = int(b.cls[0].item())
-                    conf = float(b.conf[0].item())
-                    cls_name = normalize_name(names.get(cls_id, str(cls_id)))
+            # YOLOv8 output is [1, num_classes + 4, num_boxes]. Transpose to [num_boxes, num_classes + 4]
+            preds = outputs[0].T
 
-                    if cls_name in PET_CLASSES and conf > detected_conf:
+            boxes = []
+            scores = []
+            class_ids = []
+
+            # Calculate scaling factors since we resize to IMGSZ x IMGSZ for inference
+            x_factor = frame.shape[1] / IMGSZ
+            y_factor = frame.shape[0] / IMGSZ
+
+            # Parse predictions
+            for row in preds:
+                cls_scores = row[4:]
+                class_id = np.argmax(cls_scores)
+                score = cls_scores[class_id]
+
+                if score > CONF_THRESHOLD:
+                    cx, cy, w, h = row[0], row[1], row[2], row[3]
+
+                    # Convert to top-left x,y,w,h
+                    left = int((cx - w / 2) * x_factor)
+                    top = int((cy - h / 2) * y_factor)
+                    width = int(w * x_factor)
+                    height = int(h * y_factor)
+
+                    boxes.append([left, top, width, height])
+                    scores.append(float(score))
+                    class_ids.append(class_id)
+
+            # Apply Non-Maximum Suppression
+            indices = cv2.dnn.NMSBoxes(boxes, scores, CONF_THRESHOLD, IOU_THRESHOLD)
+
+            annotated = frame.copy()
+
+            if len(indices) > 0:
+                # Handle difference in OpenCV return format for NMSBoxes
+                if isinstance(indices, tuple):
+                    indices = indices[0]
+                else:
+                    indices = indices.flatten()
+
+                # Limit max detections
+                indices = indices[:MAX_DET]
+
+                for i in indices:
+                    box = boxes[i]
+                    left, top, width, height = box
+                    conf = scores[i]
+                    cls_id = class_ids[i]
+
+                    cls_name = self.class_names.get(cls_id, str(cls_id))
+                    norm_name = normalize_name(cls_name)
+
+                    if norm_name in PET_CLASSES and conf > detected_conf:
                         detected_type = "pet"
                         detected_conf = conf
-                    elif cls_name in CAN_CLASSES and conf > detected_conf:
+                    elif norm_name in CAN_CLASSES and conf > detected_conf:
                         detected_type = "can"
                         detected_conf = conf
+
+                    # Draw bounding box and label
+                    cv2.rectangle(annotated, (left, top), (left + width, top + height), (0, 255, 0), 2)
+                    label = f"{cls_name} {conf:.2f}"
+                    cv2.putText(annotated, label, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+            self.last_annotated = annotated
         else:
             annotated = self.last_annotated if self.last_annotated is not None else frame
 
-        # FPS
+        # FPS calculation
         now = time.time()
         dt = now - self._prev_time
         self._prev_time = now

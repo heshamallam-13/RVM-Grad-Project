@@ -10,15 +10,23 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
-# Model — prefer NCNN export, fall back to .pt
+# Model — prefer ONNX export, fall back to NCNN, then .pt
+ONNX_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.onnx")
 NCNN_MODEL_DIR = os.path.join(PROJECT_DIR, "rvm_best_yolov8s_ncnn_model")
 PT_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.pt")
+CLASS_NAMES_PATH = os.path.join(PROJECT_DIR, "class_names.txt")
 
 def get_model_path():
-    """Return NCNN model path if available, otherwise .pt path."""
-    if os.path.isdir(NCNN_MODEL_DIR):
-        return NCNN_MODEL_DIR
-    return PT_MODEL_PATH
+    """Return ONNX model path if available."""
+    if os.path.isfile(ONNX_MODEL_PATH):
+        return ONNX_MODEL_PATH
+    raise FileNotFoundError(
+        f"ONNX model not found at {ONNX_MODEL_PATH}\n"
+        "Run 'python export_model.py' on your PC first, then copy the .onnx file to the Pi."
+    )
+
+def get_class_names_path():
+    return CLASS_NAMES_PATH
 
 # =========================
 # Camera

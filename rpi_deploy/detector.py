@@ -16,6 +16,39 @@ from config import (
     PET_CLASSES, CAN_CLASSES, normalize_name,
 )
 
+def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleFill=False, scaleup=True):
+    """Resize image and pad to keep aspect ratio."""
+    shape = img.shape[:2]  # current shape [height, width]
+    if isinstance(new_shape, int):
+        new_shape = (new_shape, new_shape)
+
+    # Scale ratio (new / old)
+    r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
+    if not scaleup:  # only scale down, do not scale up (for better val mAP)
+        r = min(r, 1.0)
+
+    # Compute padding
+    ratio = r, r  # width, height ratios
+    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
+    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
+
+    if auto:  # minimum rectangle
+        dw, dh = np.mod(dw, 32), np.mod(dh, 32)  # wh padding
+    elif scaleFill:  # stretch
+        dw, dh = 0.0, 0.0
+        new_unpad = (new_shape[1], new_shape[0])
+        ratio = new_shape[1] / shape[1], new_shape[0] / shape[0]  # width, height ratios
+
+    dw /= 2  # divide padding into 2 sides
+    dh /= 2
+
+    if shape[::-1] != new_unpad:  # resize
+        img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
+    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
+    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
+    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
+    return img, ratio, (dw, dh)
+
 class Detector:
     """Manages camera capture and OpenCV DNN YOLO inference."""
 
@@ -139,8 +172,10 @@ class Detector:
         do_infer = (self.frame_count % INFER_EVERY_N == 0)
 
         if do_infer:
-            # 1. OpenCV DNN Preprocessing (BGR to RGB, scale to 0-1, resize to IMGSZ)
-            blob = cv2.dnn.blobFromImage(frame, 1/255.0, (IMGSZ, IMGSZ), swapRB=True, crop=False)
+            # 1. Image Preprocessing (Letterbox to preserve aspect ratio)
+            img_letterbox, ratio, pad = letterbox(frame, new_shape=IMGSZ)
+            # OpenCV DNN blobFromImage handles BGR->RGB, and 0-255->0-1
+            blob = cv2.dnn.blobFromImage(img_letterbox, 1/255.0, (IMGSZ, IMGSZ), swapRB=True, crop=False)
             self.net.setInput(blob)
 
             # 2. Inference
@@ -158,10 +193,6 @@ class Detector:
             scores = []
             class_ids = []
 
-            # Calculate scaling factors to map back to original frame size
-            x_factor = frame.shape[1] / IMGSZ
-            y_factor = frame.shape[0] / IMGSZ
-
             # Parse predictions
             for row in preds:
                 cls_scores = row[4:]
@@ -171,11 +202,17 @@ class Detector:
                 if score > CONF_THRESHOLD:
                     cx, cy, w, h = row[0], row[1], row[2], row[3]
 
+                    # Reverse the letterbox padding and scaling
+                    cx = (cx - pad[0]) / ratio[0]
+                    cy = (cy - pad[1]) / ratio[1]
+                    w = w / ratio[0]
+                    h = h / ratio[1]
+
                     # Convert to top-left x,y,w,h for OpenCV
-                    left = int((cx - w / 2) * x_factor)
-                    top = int((cy - h / 2) * y_factor)
-                    width = int(w * x_factor)
-                    height = int(h * y_factor)
+                    left = int(cx - w / 2)
+                    top = int(cy - h / 2)
+                    width = int(w)
+                    height = int(h)
 
                     boxes.append([left, top, width, height])
                     scores.append(float(score))

@@ -22,16 +22,16 @@ def export():
     print(f"[Export] Loading model: {PT_MODEL_PATH}")
     model = YOLO(PT_MODEL_PATH)
 
-    print(f"[Export] Exporting to ONNX (imgsz={IMGSZ}) ...")
-    onnx_path = model.export(format="onnx", imgsz=IMGSZ)
+    print(f"[Export] Exporting to FP16 TFLite (imgsz={IMGSZ}) ...")
+    model.export(format="tflite", half=True, imgsz=IMGSZ)
 
     print(f"[Export] Saving class names to: {CLASS_NAMES_PATH}")
     with open(CLASS_NAMES_PATH, "w") as f:
         for idx, name in model.names.items():
             f.write(f"{idx}:{name}\n")
 
-    print("[Export] Done! ONNX model and class_names.txt saved.")
-    print("[Export] Copy both the .onnx file and class_names.txt to the Pi.")
+    print("[Export] Done! TFLite model and class_names.txt saved.")
+    print("[Export] Copy the generated 'rvm_best_yolov8s_saved_model' folder and 'class_names.txt' to the Pi.")
 
 if __name__ == "__main__":
     export()

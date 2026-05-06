@@ -1,6 +1,6 @@
 """
 Optimized detection engine for Raspberry Pi 5.
-Uses OpenCV DNN with an ONNX-exported YOLOv8 model for best ARM performance
+Uses tflite-runtime with an FP16 TFLite YOLOv8 model for best ARM performance
 without needing the heavy PyTorch/Ultralytics dependencies.
 """
 
@@ -9,6 +9,13 @@ import os
 import cv2
 import numpy as np
 
+# Use tflite_runtime for the Raspberry Pi
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    # Fallback for testing on a full PC
+    import tensorflow.lite as tflite
+
 from config import (
     get_model_path, get_class_names_path, CAM_INDEX, FRAME_W, FRAME_H, TARGET_FPS,
     IMGSZ, CONF_THRESHOLD, IOU_THRESHOLD, MAX_DET, INFER_EVERY_N,
@@ -16,12 +23,18 @@ from config import (
 )
 
 class Detector:
-    """Manages camera capture and OpenCV DNN YOLO inference."""
+    """Manages camera capture and TFLite YOLO inference."""
 
     def __init__(self, model_path=None):
         path = model_path or get_model_path()
-        print(f"[Detector] Loading ONNX model: {path}")
-        self.net = cv2.dnn.readNetFromONNX(path)
+        print(f"[Detector] Loading TFLite model: {path}")
+        
+        # Initialize TFLite Interpreter (using 4 threads for Raspberry Pi 5 quad-core)
+        self.interpreter = tflite.Interpreter(model_path=path, num_threads=4)
+        self.interpreter.allocate_tensors()
+        
+        self.input_details = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
         print("[Detector] Model loaded.")
 
         # Try to load class names
@@ -113,21 +126,38 @@ class Detector:
         do_infer = (self.frame_count % INFER_EVERY_N == 0)
 
         if do_infer:
-            # OpenCV DNN requires a blob format
-            blob = cv2.dnn.blobFromImage(frame, 1/255.0, (IMGSZ, IMGSZ), swapRB=True, crop=False)
-            self.net.setInput(blob)
-            outputs = self.net.forward()
+            # 1. TFLite Preprocessing
+            input_shape = self.input_details[0]['shape']
+            
+            # Ultralytics TFLite export generates inputs formatted as NHWC (1, Height, Width, Channels)
+            model_h, model_w = input_shape[1], input_shape[2]
+            
+            # Resize and format the image for TFLite
+            img_resized = cv2.resize(frame, (model_w, model_h))
+            img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+            img_normalized = img_rgb.astype(np.float32) / 255.0
+            input_data = np.expand_dims(img_normalized, axis=0)
 
-            # YOLOv8 output is [1, num_classes + 4, num_boxes]. Transpose to [num_boxes, num_classes + 4]
-            preds = outputs[0].T
+            # 2. TFLite Inference
+            self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+            self.interpreter.invoke()
+            outputs = self.interpreter.get_tensor(self.output_details[0]['index'])
+
+            # 3. Post-processing
+            # YOLOv8 output is usually [1, num_classes + 4, num_boxes]. Squeeze to remove batch dimension.
+            preds = np.squeeze(outputs)
+
+            # Transpose if the shape is [num_classes + 4, num_boxes]
+            if len(preds.shape) == 2 and preds.shape[0] < preds.shape[1]:
+                preds = preds.T
 
             boxes = []
             scores = []
             class_ids = []
 
-            # Calculate scaling factors since we resize to IMGSZ x IMGSZ for inference
-            x_factor = frame.shape[1] / IMGSZ
-            y_factor = frame.shape[0] / IMGSZ
+            # Calculate scaling factors since we resize to model_w x model_h for inference
+            x_factor = frame.shape[1] / model_w
+            y_factor = frame.shape[0] / model_h
 
             # Parse predictions
             for row in preds:
@@ -138,7 +168,7 @@ class Detector:
                 if score > CONF_THRESHOLD:
                     cx, cy, w, h = row[0], row[1], row[2], row[3]
 
-                    # Convert to top-left x,y,w,h
+                    # Convert to top-left x,y,w,h for OpenCV
                     left = int((cx - w / 2) * x_factor)
                     top = int((cy - h / 2) * y_factor)
                     width = int(w * x_factor)
@@ -148,7 +178,7 @@ class Detector:
                     scores.append(float(score))
                     class_ids.append(class_id)
 
-            # Apply Non-Maximum Suppression
+            # Apply Non-Maximum Suppression (using OpenCV's built-in NMS)
             indices = cv2.dnn.NMSBoxes(boxes, scores, CONF_THRESHOLD, IOU_THRESHOLD)
 
             annotated = frame.copy()

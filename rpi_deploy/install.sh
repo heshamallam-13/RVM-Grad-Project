@@ -98,17 +98,17 @@ pip install -r "$SCRIPT_DIR/requirements.txt" --retries 5 --timeout 120
 echo -e "${GREEN}  ✅ Python packages installed${NC}"
 
 # --------------------------------------------------
-# 4. Check for ONNX model and class names
+# 4. Check for TFLite model and class names
 # --------------------------------------------------
 echo ""
-echo -e "${YELLOW}[4/6] Checking for ONNX model and class names...${NC}"
+echo -e "${YELLOW}[4/6] Checking for TFLite model and class names...${NC}"
 
-ONNX_FILE="$PROJECT_DIR/rvm_best_yolov8s.onnx"
+TFLITE_DIR="$PROJECT_DIR/rvm_best_yolov8s_saved_model"
 CLASS_NAMES_FILE="$PROJECT_DIR/class_names.txt"
 
 MISSING=0
-if [ ! -f "$ONNX_FILE" ]; then
-    echo -e "${RED}  ERROR: ONNX model not found at $ONNX_FILE${NC}"
+if [ ! -d "$TFLITE_DIR" ]; then
+    echo -e "${RED}  ERROR: TFLite model folder not found at $TFLITE_DIR${NC}"
     MISSING=1
 fi
 if [ ! -f "$CLASS_NAMES_FILE" ]; then
@@ -121,12 +121,12 @@ if [ $MISSING -eq 1 ]; then
     echo "  Since PyTorch cannot be installed on a 32-bit Raspberry Pi,"
     echo "  you must export the model on your PC first:"
     echo "    1. On your PC, run: python rpi_deploy/export_model.py"
-    echo "    2. Copy the generated 'rvm_best_yolov8s.onnx' and 'class_names.txt'"
+    echo "    2. Copy the generated 'rvm_best_yolov8s_saved_model' folder and 'class_names.txt'"
     echo "       to the main project folder on the Raspberry Pi."
     echo ""
     exit 1
 else
-    echo -e "${GREEN}  ✅ ONNX model and class names are present${NC}"
+    echo -e "${GREEN}  ✅ TFLite model and class names are present${NC}"
 fi
 
 # --------------------------------------------------

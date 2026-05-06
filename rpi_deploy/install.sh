@@ -40,6 +40,10 @@ sudo apt-get install -y -qq \
     python3-venv \
     python3-dev \
     python3-pip \
+    python3-numpy \
+    python3-scipy \
+    python3-opencv \
+    python3-matplotlib \
     libopencv-dev \
     libhdf5-dev \
     libjpeg-dev \
@@ -68,11 +72,13 @@ echo -e "${GREEN}  ✅ System dependencies installed${NC}"
 echo ""
 echo -e "${YELLOW}[2/6] Creating Python virtual environment...${NC}"
 
-if [ -d "$VENV_DIR" ]; then
+# Remove old venv that may not have --system-site-packages
+if [ -d "$VENV_DIR" ] && ! grep -q 'false' "$VENV_DIR/pyvenv.cfg" 2>/dev/null; then
     echo "  Virtual environment already exists at $VENV_DIR"
 else
-    python3 -m venv "$VENV_DIR"
-    echo -e "${GREEN}  ✅ Virtual environment created at $VENV_DIR${NC}"
+    rm -rf "$VENV_DIR"
+    python3 -m venv --system-site-packages "$VENV_DIR"
+    echo -e "${GREEN}  ✅ Virtual environment created at $VENV_DIR (with system packages)${NC}"
 fi
 
 # Activate venv
@@ -81,14 +87,14 @@ echo "  Python: $(which python3)"
 echo "  Version: $(python3 --version)"
 
 # Upgrade pip
-pip install --upgrade pip --quiet
+pip install --upgrade pip --quiet --retries 5 --timeout 60
 
 # --------------------------------------------------
 # 3. Install Python packages
 # --------------------------------------------------
 echo ""
 echo -e "${YELLOW}[3/6] Installing Python packages (this may take several minutes)...${NC}"
-pip install -r "$SCRIPT_DIR/requirements.txt" --quiet
+pip install -r "$SCRIPT_DIR/requirements.txt" --retries 5 --timeout 120
 echo -e "${GREEN}  ✅ Python packages installed${NC}"
 
 # --------------------------------------------------

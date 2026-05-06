@@ -1,8 +1,10 @@
 # Python dependencies for RVM deployment on Raspberry Pi 5
-ultralytics>=8.2.0
-opencv-python-headless>=4.9.0
-flask>=3.0
-flask-socketio>=5.3
-psutil>=5.9
-matplotlib>=3.8
-numpy>=1.26
+# ---
+# NOTE: numpy, scipy, and opencv are installed as system packages
+# (python3-numpy, python3-scipy, python3-opencv) to avoid slow
+# ARM compilation. The venv uses --system-site-packages to access them.
+# ---
+ultralytics==8.2.50
+flask>=3.0,<4.0
+flask-socketio>=5.3,<6.0
+psutil>=5.9,<7.0

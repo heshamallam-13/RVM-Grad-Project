@@ -10,18 +10,18 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
-# Model — TFLite FP16 path
+# Model — ONNX FP32 path (using 320px for speed)
 PT_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.pt")
-TFLITE_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s_float16.tflite")
+ONNX_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.onnx")
 CLASS_NAMES_PATH = os.path.join(PROJECT_DIR, "class_names.txt")
 
 def get_model_path():
-    """Return TFLite model path if available."""
-    if os.path.isfile(TFLITE_MODEL_PATH):
-        return TFLITE_MODEL_PATH
+    """Return ONNX model path if available."""
+    if os.path.isfile(ONNX_MODEL_PATH):
+        return ONNX_MODEL_PATH
     raise FileNotFoundError(
-        f"TFLite model not found at {TFLITE_MODEL_PATH}\n"
-        "Copy 'rvm_best_yolov8s_float16.tflite' to the Pi's project folder."
+        f"ONNX model not found at {ONNX_MODEL_PATH}\n"
+        "Copy 'rvm_best_yolov8s.onnx' to the Pi's project folder."
     )
 
 def get_class_names_path():

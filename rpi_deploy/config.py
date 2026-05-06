@@ -38,11 +38,11 @@ TARGET_FPS = 30
 # =========================
 # Detection
 # =========================
-IMGSZ = 320
+IMGSZ = 224
 CONF_THRESHOLD = 0.80
 IOU_THRESHOLD = 0.50
 MAX_DET = 50
-INFER_EVERY_N = 1      # run inference on every Nth frame (increase to skip frames)
+INFER_EVERY_N = 3      # run inference on every Nth frame (increase to skip frames)
 
 # =========================
 # Reward Points

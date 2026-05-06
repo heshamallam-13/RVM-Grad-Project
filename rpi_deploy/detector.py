@@ -8,6 +8,7 @@ import time
 import os
 import cv2
 import numpy as np
+import threading
 
 from config import (
     get_model_path, get_class_names_path, CAM_INDEX, FRAME_W, FRAME_H, TARGET_FPS,
@@ -44,6 +45,11 @@ class Detector:
         self.cap = None
         self.frame_count = 0
         self.last_annotated = None
+        
+        # Threaded Camera
+        self.current_frame = None
+        self.thread_running = False
+        self.camera_thread = None
 
         # FPS smoothing
         self._prev_time = 0.0
@@ -74,10 +80,30 @@ class Detector:
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self._prev_time = time.time()
         print(f"[Detector] Camera opened (index={CAM_INDEX})")
+        
+        # Start background reading thread
+        self.thread_running = True
+        self.camera_thread = threading.Thread(target=self._update_frame_loop, daemon=True)
+        self.camera_thread.start()
+        
         return True
+
+    def _update_frame_loop(self):
+        """Continuously reads frames from the camera in the background."""
+        while self.thread_running:
+            if self.cap and self.cap.isOpened():
+                ret, frame = self.cap.read()
+                if ret:
+                    self.current_frame = frame
+            # Small sleep to prevent 100% CPU usage
+            time.sleep(0.01)
 
     def release_camera(self):
         """Release the webcam."""
+        self.thread_running = False
+        if self.camera_thread:
+            self.camera_thread.join(timeout=1.0)
+            
         if self.cap:
             self.cap.release()
             self.cap = None
@@ -99,14 +125,12 @@ class Detector:
                 "fps": float,
             }
         """
-        if not self.cap or not self.cap.isOpened():
+        if not self.thread_running or self.current_frame is None:
             return {"ok": False, "frame_jpeg": None, "detected_type": "none",
                     "detected_conf": 0.0, "fps": 0.0}
 
-        ret, frame = self.cap.read()
-        if not ret:
-            return {"ok": False, "frame_jpeg": None, "detected_type": "none",
-                    "detected_conf": 0.0, "fps": 0.0}
+        # Grab a copy of the latest background frame
+        frame = self.current_frame.copy()
 
         self.frame_count += 1
         detected_type = "none"

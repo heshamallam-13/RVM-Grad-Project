@@ -103,12 +103,12 @@ echo -e "${GREEN}  ✅ Python packages installed${NC}"
 echo ""
 echo -e "${YELLOW}[4/6] Checking for TFLite model and class names...${NC}"
 
-TFLITE_DIR="$PROJECT_DIR/rvm_best_yolov8s_saved_model"
+TFLITE_FILE="$PROJECT_DIR/rvm_best_yolov8s_float16.tflite"
 CLASS_NAMES_FILE="$PROJECT_DIR/class_names.txt"
 
 MISSING=0
-if [ ! -d "$TFLITE_DIR" ]; then
-    echo -e "${RED}  ERROR: TFLite model folder not found at $TFLITE_DIR${NC}"
+if [ ! -f "$TFLITE_FILE" ]; then
+    echo -e "${RED}  ERROR: TFLite model file not found at $TFLITE_FILE${NC}"
     MISSING=1
 fi
 if [ ! -f "$CLASS_NAMES_FILE" ]; then
@@ -119,10 +119,9 @@ fi
 if [ $MISSING -eq 1 ]; then
     echo ""
     echo "  Since PyTorch cannot be installed on a 32-bit Raspberry Pi,"
-    echo "  you must export the model on your PC first:"
-    echo "    1. On your PC, run: python rpi_deploy/export_model.py"
-    echo "    2. Copy the generated 'rvm_best_yolov8s_saved_model' folder and 'class_names.txt'"
-    echo "       to the main project folder on the Raspberry Pi."
+    echo "  you must export the model on your PC first."
+    echo "  Make sure 'rvm_best_yolov8s_float16.tflite' and 'class_names.txt'"
+    echo "  are placed in the main project folder."
     echo ""
     exit 1
 else

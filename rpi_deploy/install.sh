@@ -49,7 +49,8 @@ sudo apt-get install -y -qq \
     v4l-utils \
     cmake \
     git \
-    libgl1
+    libgl1 \
+    gfortran
 
 # libatlas-base-dev was replaced by libopenblas-dev on Bookworm+
 sudo apt-get install -y -qq libatlas-base-dev 2>/dev/null || \

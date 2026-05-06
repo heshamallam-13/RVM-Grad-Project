@@ -35,12 +35,12 @@ echo ""
 # --------------------------------------------------
 echo -e "${YELLOW}[1/6] Installing system dependencies...${NC}"
 sudo apt-get update -qq
+# Install packages (with fallbacks for Bookworm+ name changes)
 sudo apt-get install -y -qq \
     python3-venv \
     python3-dev \
     python3-pip \
     libopencv-dev \
-    libatlas-base-dev \
     libhdf5-dev \
     libjpeg-dev \
     libpng-dev \
@@ -49,8 +49,15 @@ sudo apt-get install -y -qq \
     v4l-utils \
     cmake \
     git \
-    libgl1 \
-    libglib2.0-0
+    libgl1
+
+# libatlas-base-dev was replaced by libopenblas-dev on Bookworm+
+sudo apt-get install -y -qq libatlas-base-dev 2>/dev/null || \
+    sudo apt-get install -y -qq libopenblas-dev
+
+# libglib2.0-0 was renamed to libglib2.0-0t64 on 64-bit Bookworm+
+sudo apt-get install -y -qq libglib2.0-0 2>/dev/null || \
+    sudo apt-get install -y -qq libglib2.0-0t64
 
 echo -e "${GREEN}  ✅ System dependencies installed${NC}"
 

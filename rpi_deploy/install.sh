@@ -103,7 +103,7 @@ echo -e "${GREEN}  ✅ Python packages installed${NC}"
 echo ""
 echo -e "${YELLOW}[4/6] Checking for ONNX model and class names...${NC}"
 
-ONNX_FILE="$PROJECT_DIR/robflowbest.onnx"
+ONNX_FILE="$PROJECT_DIR/rvm_best_yolov8s.onnx"
 CLASS_NAMES_FILE="$PROJECT_DIR/class_names.txt"
 
 MISSING=0
@@ -120,7 +120,7 @@ if [ $MISSING -eq 1 ]; then
     echo ""
     echo "  Since PyTorch cannot be installed on a 32-bit Raspberry Pi,"
     echo "  you must export the model on your PC first."
-    echo "  Make sure 'robflowbest.onnx' and 'class_names.txt'"
+    echo "  Make sure 'rvm_best_yolov8s.onnx' and 'class_names.txt'"
     echo "  are placed in the main project folder."
     echo ""
     exit 1

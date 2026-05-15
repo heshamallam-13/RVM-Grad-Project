@@ -11,8 +11,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
 # Model — ONNX FP32 path
-PT_MODEL_PATH = os.path.join(PROJECT_DIR, "robflowbest.pt")
-ONNX_MODEL_PATH = os.path.join(PROJECT_DIR, "robflowbest.onnx")
+PT_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.pt")
+ONNX_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.onnx")
 CLASS_NAMES_PATH = os.path.join(PROJECT_DIR, "class_names.txt")
 
 def get_model_path():
@@ -21,7 +21,7 @@ def get_model_path():
         return ONNX_MODEL_PATH
     raise FileNotFoundError(
         f"ONNX model not found at {ONNX_MODEL_PATH}\n"
-        "Copy 'robflowbest.onnx' to the Pi's project folder."
+        "Copy 'rvm_best_yolov8s.onnx' to the Pi's project folder."
     )
 
 def get_class_names_path():

@@ -8,8 +8,8 @@ Real-time PET bottle and aluminum can detection using **YOLOv8s** on **Raspberry
 
 ```
 RVM_Detection_Model/
-├── robflowbest.pt                   # ★ Primary YOLOv8s model (Roboflow trained)
-├── robflowbest.onnx                 # ONNX export for Raspberry Pi
+├── rvm_best_yolov8s.pt              # ★ Primary YOLOv8s model
+├── rvm_best_yolov8s.onnx            # ONNX export for Raspberry Pi
 ├── class_names.txt                  # Class mapping (0:can, 1:pet)
 ├── Webcam&Reward_System.py          # Desktop GUI (PySide6 — for PC testing)
 │
@@ -26,8 +26,8 @@ RVM_Detection_Model/
 │   ├── templates/                   # Web UI HTML
 │   └── static/                      # Web UI CSS/JS
 │
-├── rvm_best_yolov8s.pt              # Legacy model (kept for reference)
-└── rvm_best_yolov8s.onnx            # Legacy ONNX export
+├── robflowbest.pt                   # Alternate Roboflow model
+└── robflowbest.onnx                 # Alternate ONNX export
 ```
 
 ---
@@ -89,11 +89,11 @@ python "Webcam&Reward_System.py"
 | Property | Value |
 |----------|-------|
 | **Architecture** | YOLOv8s |
-| **Model File** | `robflowbest.pt` → `robflowbest.onnx` |
+| **Model File** | `rvm_best_yolov8s.pt` → `rvm_best_yolov8s.onnx` |
 | **Classes** | `can` (0), `pet` (1) |
 | **Input Size** | 224×224 (Pi) / 640×640 (PC) |
 | **Confidence** | 50% threshold |
-| **Training** | Roboflow dataset |
+| **Training** | Custom dataset |
 
 ---
 

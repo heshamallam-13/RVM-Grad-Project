@@ -22,8 +22,8 @@ def export():
     print(f"[Export] Loading model: {PT_MODEL_PATH}")
     model = YOLO(PT_MODEL_PATH)
 
-    print(f"[Export] Exporting to ONNX (imgsz={IMGSZ}) ...")
-    model.export(format="onnx", imgsz=IMGSZ)
+    print(f"[Export] Exporting to ONNX (imgsz={IMGSZ}, half=False, int8=False) ...")
+    model.export(format="onnx", imgsz=IMGSZ, half=False, int8=False)
 
     print(f"[Export] Saving class names to: {CLASS_NAMES_PATH}")
     with open(CLASS_NAMES_PATH, "w") as f:

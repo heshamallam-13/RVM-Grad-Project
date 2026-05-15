@@ -16,6 +16,11 @@ import sys
 import os
 import time
 import threading
+
+# ---- Auto-set DISPLAY for Raspberry Pi (fixes SSH / headless launch) ----
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":0"
+
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk

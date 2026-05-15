@@ -10,9 +10,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
-# Model — ONNX FP32 path (using 320px for speed)
-PT_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.pt")
-ONNX_MODEL_PATH = os.path.join(PROJECT_DIR, "rvm_best_yolov8s.onnx")
+# Model — ONNX FP32 path
+PT_MODEL_PATH = os.path.join(PROJECT_DIR, "robflowbest.pt")
+ONNX_MODEL_PATH = os.path.join(PROJECT_DIR, "robflowbest.onnx")
 CLASS_NAMES_PATH = os.path.join(PROJECT_DIR, "class_names.txt")
 
 def get_model_path():
@@ -21,7 +21,7 @@ def get_model_path():
         return ONNX_MODEL_PATH
     raise FileNotFoundError(
         f"ONNX model not found at {ONNX_MODEL_PATH}\n"
-        "Copy 'rvm_best_yolov8s.onnx' to the Pi's project folder."
+        "Copy 'robflowbest.onnx' to the Pi's project folder."
     )
 
 def get_class_names_path():
@@ -39,7 +39,7 @@ TARGET_FPS = 30
 # Detection
 # =========================
 IMGSZ = 224
-CONF_THRESHOLD = 0.80
+CONF_THRESHOLD = 0.50
 IOU_THRESHOLD = 0.50
 MAX_DET = 50
 INFER_EVERY_N = 3      # run inference on every Nth frame (increase to skip frames)

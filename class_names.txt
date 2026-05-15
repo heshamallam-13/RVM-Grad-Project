@@ -1,2 +1,2 @@
-0:CAN
-1:PET
+0:can
+1:pet

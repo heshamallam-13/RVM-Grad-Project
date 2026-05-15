@@ -24,13 +24,13 @@ print("RUNNING FILE:", os.path.abspath(__file__))
 # Config
 # =========================
 MODEL_PATH = "rvm_best_yolov8s.pt"
-CAM_INDEX = 1
+CAM_INDEX =0
 
 FRAME_W, FRAME_H = 640, 480
 TARGET_FPS = 30
 
 IMGSZ = 640
-CONF = 0.80
+CONF = 0.50
 IOU = 0.50
 MAX_DET = 50
 

@@ -103,7 +103,7 @@ echo -e "${GREEN}  ✅ Python packages installed${NC}"
 echo ""
 echo -e "${YELLOW}[4/6] Checking for ONNX model and class names...${NC}"
 
-ONNX_FILE="$PROJECT_DIR/rvm_best_yolov8s.onnx"
+ONNX_FILE="$PROJECT_DIR/robflowbest.onnx"
 CLASS_NAMES_FILE="$PROJECT_DIR/class_names.txt"
 
 MISSING=0
@@ -120,12 +120,12 @@ if [ $MISSING -eq 1 ]; then
     echo ""
     echo "  Since PyTorch cannot be installed on a 32-bit Raspberry Pi,"
     echo "  you must export the model on your PC first."
-    echo "  Make sure 'rvm_best_yolov8s.onnx' and 'class_names.txt'"
+    echo "  Make sure 'robflowbest.onnx' and 'class_names.txt'"
     echo "  are placed in the main project folder."
     echo ""
     exit 1
 else
-    echo -e "${GREEN}  ✅ TFLite model and class names are present${NC}"
+    echo -e "${GREEN}  ✅ ONNX model and class names are present${NC}"
 fi
 
 # --------------------------------------------------
@@ -157,13 +157,21 @@ echo -e "${GREEN}============================================================${N
 echo -e "${GREEN}  ✅ Installation complete!${NC}"
 echo -e "${GREEN}============================================================${NC}"
 echo ""
-echo "  To run the detection server:"
+echo "  To run the detection server (web browser):"
 echo ""
 echo -e "    ${YELLOW}cd $SCRIPT_DIR${NC}"
 echo -e "    ${YELLOW}source venv/bin/activate${NC}"
 echo -e "    ${YELLOW}python3 app.py${NC}"
 echo ""
 echo "  Then open a browser at:  http://<your-rpi-ip>:5000"
+echo ""
+echo "  To run the touchscreen GUI:"
+echo ""
+echo -e "    ${YELLOW}python3 pi_touch_gui.py${NC}"
+echo ""
+echo "  To enable auto-start on boot:"
+echo ""
+echo -e "    ${YELLOW}bash setup_autostart.sh${NC}"
 echo ""
 echo "  To run benchmarks:"
 echo ""

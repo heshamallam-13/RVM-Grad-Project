@@ -52,7 +52,6 @@ TITLE_FONT = ("Helvetica", 20, "bold")
 SCORE_FONT = ("Helvetica", 28, "bold")
 NEXT_COOLDOWN_SEC = 0.6
 FRAME_INTERVAL_MS = 30  # ~33 FPS GUI refresh
-POINTS_TARGET = 300
 
 # =========================
 # Arduino Serial
@@ -359,43 +358,11 @@ class EcoVendApp:
             bg=CARD_BG, fg=ACCENT_YELLOW
         ).pack(pady=(15, 0))
 
-        self.points_canvas = tk.Canvas(
-            sidebar,
-            width=150,
-            height=150,
-            bg=CARD_BG,
-            highlightthickness=0
+        self.score_label = tk.Label(
+            sidebar, text="0", font=SCORE_FONT,
+            bg=CARD_BG, fg=TEXT_COLOR
         )
-        self.points_canvas.pack(pady=(5, 10))
-
-        self.points_canvas.create_oval(
-            18, 18, 132, 132,
-            outline="#30363d",
-            width=10
-        )
-
-        self.points_arc = self.points_canvas.create_arc(
-            18, 18, 132, 132,
-            start=90,
-            extent=0,
-            outline=ACCENT_GREEN,
-            width=10,
-            style=tk.ARC
-        )
-
-        self.score_label = self.points_canvas.create_text(
-            75, 65,
-            text="0",
-            fill=TEXT_COLOR,
-            font=("Helvetica", 28, "bold")
-        )
-
-        self.points_canvas.create_text(
-            75, 100,
-            text="POINTS",
-            fill="#8b949e",
-            font=("Helvetica", 10, "bold")
-        )
+        self.score_label.pack(pady=(0, 10))
 
         # Counts
         self.pet_label = tk.Label(
@@ -582,12 +549,12 @@ class EcoVendApp:
         def step(i=0):
             if i >= steps:
                 self.displayed_points = end_value
-                self.points_canvas.itemconfig(self.score_label, text=str(end_value))
+                self.score_label.config(text=str(end_value))
                 return
 
             value = int(start_value + (diff * (i + 1) / steps))
             self.displayed_points = value
-            self.points_canvas.itemconfig(self.score_label, text=str(value))
+            self.score_label.config(text=str(value))
             self.root.after(25, lambda: step(i + 1))
 
         step()
@@ -867,19 +834,7 @@ class EcoVendApp:
         self._show_welcome_screen()
 
     def _update_scoreboard(self):
-        self.points_canvas.itemconfig(self.score_label, text=str(self.total_points))
-
-        progress = min(self.total_points / POINTS_TARGET, 1.0)
-        extent = -360 * progress
-        self.points_canvas.itemconfig(self.points_arc, extent=extent)
-
-        if progress >= 1.0:
-            self.points_canvas.itemconfig(self.points_arc, outline=ACCENT_YELLOW)
-        elif progress >= 0.5:
-            self.points_canvas.itemconfig(self.points_arc, outline=ACCENT_GREEN)
-        else:
-            self.points_canvas.itemconfig(self.points_arc, outline=ACCENT_BLUE)
-
+        self.score_label.config(text=str(self.total_points))
         self.pet_label.config(text=f"🥤 PET: {self.pet_count}")
         self.can_label.config(text=f"🥫 CAN: {self.can_count}")
 

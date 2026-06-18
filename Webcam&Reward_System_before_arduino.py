@@ -1,6 +1,3 @@
-import serial
-import glob
-import threading
 import sys
 import time
 import cv2
@@ -22,50 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 print("RUNNING FILE:", os.path.abspath(__file__))
-# =========================
-# Arduino Serial
-# =========================
-arduino = None
 
-def connect_arduino():
-    global arduino
-    ports = glob.glob('/dev/ttyACM*') + glob.glob('/dev/ttyUSB*')
-    print("Arduino ports:", ports)
-
-    if not ports:
-        print("Arduino not found")
-        return None
-
-    try:
-        arduino = serial.Serial(ports[0], 9600, timeout=2)
-        time.sleep(3)
-        print("Arduino Connected on", ports[0])
-        return arduino
-    except Exception as e:
-        print("Arduino Error:", e)
-        return None
-
-def send_command(cmd):
-    global arduino
-
-    if arduino is None or not arduino.is_open:
-        connect_arduino()
-
-    if arduino and arduino.is_open:
-        try:
-            arduino.write((cmd + "\n").encode())
-            time.sleep(0.3)
-
-            responses = []
-            while arduino.in_waiting:
-                responses.append(arduino.readline().decode(errors="ignore").strip())
-
-            print(f"[ARDUINO] {cmd} -> {responses}")
-            return responses
-        except Exception as e:
-            print("Send Error:", e)
-
-    return []
 # =========================
 # Config
 # =========================
@@ -342,7 +296,7 @@ class RVM_GUI(QWidget):
 
         self.worker.set_scoreboard(self.total_points, self.pet_count, self.can_count)
         self.worker.start()
-        threading.Thread(target=send_command, args=("START",), daemon=True).start()
+
         self.btn_next.setEnabled(True)
         self.btn_finish.setEnabled(True)
         self.btn_start.setEnabled(False)
@@ -370,7 +324,6 @@ class RVM_GUI(QWidget):
             self.total_points += PET_POINTS
             self.pet_count += 1
             self.update_status(f"✅ Counted PET (+{PET_POINTS}). Now show next item and press NEXT.")
-            threading.Thread(target=send_command, args=("SERVO_PET",), daemon=True).start()
             # clear last detection so user can present next item
             self.last_detected_type = "none"
             self.last_detected_conf = 0.0
@@ -380,7 +333,6 @@ class RVM_GUI(QWidget):
             self.total_points += CAN_POINTS
             self.can_count += 1
             self.update_status(f"✅ Counted CAN (+{CAN_POINTS}). Now show next item and press NEXT.")
-            threading.Thread(target=send_command, args=("SERVO_ALUMINUM",), daemon=True).start()
             self.last_detected_type = "none"
             self.last_detected_conf = 0.0
             self.worker.clear_last_detection()
@@ -395,11 +347,7 @@ class RVM_GUI(QWidget):
         # stop worker
         if self.worker and self.worker.isRunning():
             self.worker.stop()
-        threading.Thread(
-           target=send_command,
-           args=("STOP",),
-           daemon=True
-       ).start()
+
         # show summary
         msg = (
             f"Session Finished ✅\n\n"
@@ -433,7 +381,6 @@ class RVM_GUI(QWidget):
     def closeEvent(self, event):
         if self.worker and self.worker.isRunning():
             self.worker.stop()
-        send_command("STOP")
         event.accept()
 
 

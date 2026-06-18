@@ -11,8 +11,7 @@ Launches automatically on boot via setup_autostart.sh.
 Usage:
     python3 pi_touch_gui.py
 """
-import serial
-import glob
+
 import sys
 import os
 import time
@@ -52,82 +51,7 @@ SCORE_FONT = ("Helvetica", 28, "bold")
 NEXT_COOLDOWN_SEC = 0.6
 FRAME_INTERVAL_MS = 30  # ~33 FPS GUI refresh
 
-# =========================
-# Arduino Serial
-# =========================
-arduino = None
-serial_lock = threading.Lock()
-def connect_arduino():
-    global arduino
-    ports = glob.glob("/dev/ttyACM*") + glob.glob("/dev/ttyUSB*")
-    print("[Arduino] Ports:", ports)
 
-    if not ports:
-        print("[Arduino] Not found")
-        return None
-
-    try:
-        arduino = serial.Serial(ports[0], 9600, timeout=2)
-        time.sleep(3)
-        print("[Arduino] Connected:", ports[0])
-        return arduino
-    except Exception as e:
-        print("[Arduino] Connection error:", e)
-        return None
-
-def send_command(cmd):
-    global arduino
-
-    with serial_lock:
-        expected = {
-            "START": "ACK_START",
-            "STOP": "ACK_STOP",
-            "SERVO_PET": "ACK_PET_DONE",
-            "SERVO_ALUMINUM": "ACK_ALUMINUM_DONE",
-            "REJECT": "ACK_REJECT_DONE",
-            "GET_WEIGHT": "WEIGHT_",
-        }
-
-        if arduino is None or not arduino.is_open:
-            connect_arduino()
-
-        if not (arduino and arduino.is_open):
-            return []
-
-        try:
-            arduino.reset_input_buffer()
-            arduino.write((cmd + "\n").encode())
-            arduino.flush()
-
-            replies = []
-            target = expected.get(cmd)
-
-            timeout_sec = 3 if cmd in ["SERVO_PET", "SERVO_ALUMINUM"] else 12
-
-            start_time = time.time()
-
-            while time.time() - start_time < timeout_sec:
-                line = arduino.readline().decode(errors="ignore").strip()
-
-                if not line:
-                    continue
-
-                replies.append(line)
-
-                if target and target in line:
-                    break
-
-            print(f"[Arduino] {cmd} -> {replies}")
-            return replies
-
-        except Exception as e:
-            print("[Arduino] Send error:", e)
-            try:
-                arduino.close()
-            except:
-                pass
-            arduino = None
-            return []
 class EcoVendApp:
     def __init__(self, root):
         self.root = root
@@ -147,9 +71,6 @@ class EcoVendApp:
         self.last_conf = 0.0
         self.last_next_time = 0.0
         self.running = False
-        self.high_weight_lock = False
-        self.serial_monitor_running = True
-        threading.Thread(target=self._serial_monitor_loop, daemon=True).start()
 
         # Detector
         self.detector = Detector()
@@ -290,7 +211,6 @@ class EcoVendApp:
             return
 
         self.running = True
-        threading.Thread(target=send_command, args=("START",), daemon=True).start()
         self.btn_start.config(state=tk.DISABLED)
         self.btn_next.config(state=tk.NORMAL)
         self.btn_finish.config(state=tk.NORMAL)
@@ -349,9 +269,7 @@ class EcoVendApp:
     def next_item(self):
         if not self.running:
             return
-        if self.high_weight_lock:
-            self.status_label.config(text="⚠️ REMOVE HIGH WEIGHT FIRST", fg=ACCENT_RED)
-            return
+
         now = time.time()
         if now - self.last_next_time < NEXT_COOLDOWN_SEC:
             return
@@ -361,14 +279,12 @@ class EcoVendApp:
             self.total_points += PET_POINTS
             self.pet_count += 1
             self.status_label.config(text=f"✅ PET +{PET_POINTS}", fg=ACCENT_GREEN)
-            threading.Thread(target=send_command, args=("SERVO_PET",), daemon=True).start()
             self.last_type = "none"
             self.last_conf = 0.0
         elif self.last_type == "can":
             self.total_points += CAN_POINTS
             self.can_count += 1
             self.status_label.config(text=f"✅ CAN +{CAN_POINTS}", fg=ACCENT_BLUE)
-            threading.Thread(target=send_command, args=("SERVO_ALUMINUM",), daemon=True).start()
             self.last_type = "none"
             self.last_conf = 0.0
         else:
@@ -379,7 +295,7 @@ class EcoVendApp:
     def finish_session(self):
         self.running = False
         self.detector.release_camera()
-        threading.Thread(target=send_command, args=("STOP",), daemon=True).start()
+
         msg = (
             f"Session Complete!\n\n"
             f"Total Points: {self.total_points}\n"
@@ -398,58 +314,9 @@ class EcoVendApp:
         self.pet_label.config(text=f"🥤 PET: {self.pet_count}")
         self.can_label.config(text=f"🥫 CAN: {self.can_count}")
 
-    def _serial_monitor_loop(self):
-        global arduino
-
-        while self.serial_monitor_running:
-            try:
-                if arduino and arduino.is_open and arduino.in_waiting:
-                    line = arduino.readline().decode(errors="ignore").strip()
-                    if not line:
-                        continue
-
-                    print("[Arduino Monitor]", line)
-
-                    if line in ["REMOVE_HIGH_WEIGHT", "AUTO_WEIGHT_HIGH"]:
-                        self.high_weight_lock = True
-                        self.root.after(0, self._show_high_weight_warning)
-
-                    elif line in ["WEIGHT_CLEARED", "AUTO_RESUME_RUNNING"]:
-                        self.high_weight_lock = False
-                        self.root.after(0, self._clear_high_weight_warning)
-
-                time.sleep(0.05)
-
-            except Exception as e:
-                print("[Arduino Monitor Error]", e)
-                time.sleep(0.5)
-    def _show_high_weight_warning(self):
-        self.status_label.config(
-            text="⚠️ REMOVE HIGH WEIGHT",
-            fg=ACCENT_RED
-        )
-        self.det_label.config(
-            text="REMOVE HIGH WEIGHT\nItem is too heavy",
-            fg=ACCENT_RED
-        )
-        self.btn_next.config(state=tk.DISABLED)
-
-    def _clear_high_weight_warning(self):
-        self.status_label.config(
-            text="Weight OK — Continue",
-            fg=ACCENT_GREEN
-        )
-        self.det_label.config(
-            text="Ready for PET/CAN",
-            fg=TEXT_COLOR
-        )
-        if self.running:
-            self.btn_next.config(state=tk.NORMAL)
     def _on_close(self):
         self.running = False
         self.detector.release_camera()
-        send_command("STOP")
-        self.serial_monitor_running = False
         self.root.destroy()
 
 
